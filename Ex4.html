@@ -7,8 +7,11 @@
 		canvas {border: 2px dotted blue; }
 	</style>
 	
+	<!-- INCLUDE JS -->
 	<script type="text/javascript" src="glMatrix.min.js"></script>
 	<script type="text/javascript" src="Utils.js"></script>
+	<script type="text/javascript" src="Thread.js"></script>
+	<!---------------------------------------------------------------->
 
 	<script id="shader-fs" type="x-shader/x-fragment">
 		precision mediump float;
@@ -337,7 +340,7 @@
 /* this is my Utils.js 
 	not the requestAnimation() form mozkit
 */
-/*Ex3*/var t1 = new Thread();
+/*Ex3*/var t1 = new Thread("vladi");
 /*Ex3*/t1.add(tick);
 /*Ex3*/t1.set(100);
 
@@ -358,9 +361,11 @@
 var click_clack = false;
 window.onmousedown = function() {
 	if ( click_clack ) {
+		console.log(t1.toString()+" started");
 		t1.start();
 		click_clack = false;
 	} else {
+		console.log(t1.toString()+" stopped");
 		t1.stop();
 		click_clack = true;
 	}
