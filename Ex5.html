@@ -1,0 +1,394 @@
+<html>
+
+<head>
+	
+	<title>WebGL beginners guide</title>
+	<style  type='text/css'>
+		canvas {border: 2px dotted blue; }
+	</style>
+	
+	<!-- INCLUDE JS -->
+	<script type="text/javascript" src="glMatrix.min.js"></script>
+	<script type="text/javascript" src="Utils.js"></script>
+	<script type="text/javascript" src="Thread.js"></script>
+	<!---------------------------------------------------------------->
+
+	<script id="shader-fs" type="x-shader/x-fragment">
+		  precision mediump float;
+
+    varying vec2 vTextureCoord;
+
+    uniform sampler2D uSampler;
+
+    void main(void) {
+        gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+    }
+	</script>
+
+	<script id="shader-vs" type="x-shader/x-vertex">
+	attribute vec3 aVertexPosition;
+    attribute vec2 aTextureCoord;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+
+    varying vec2 vTextureCoord;
+
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vTextureCoord = aTextureCoord;
+    }
+	
+	</script>
+<!-- ##################Javascritp code ##################-->
+
+<script type="text/javascript">
+
+    var gl;
+    function initGL(canvas) {
+        try {
+            gl = canvas.getContext("experimental-webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+        }
+        if (!gl) {
+            alert("Could not initialise WebGL, sorry :-(");
+        }
+    }
+
+
+    function getShader(gl, id) {
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript) {
+            return null;
+        }
+
+        var str = "";
+        var k = shaderScript.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == "x-shader/x-fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (shaderScript.type == "x-shader/x-vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+
+
+    var shaderProgram;
+
+    function initShaders() {
+        var fragmentShader = getShader(gl, "shader-fs");
+        var vertexShader = getShader(gl, "shader-vs");
+
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+
+        gl.useProgram(shaderProgram);
+
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+
+/*Ex2*/shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+/*Ex2*/gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+    }
+
+
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
+
+function setMatrixUniforms() {
+        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+}
+
+
+/*EX5*/var texture;
+
+
+/*Extra*/
+	var wrestler = [];
+
+function loadWrestler(src) {
+	/* FILL LATER */
+} 
+	
+function initTextures() {
+	texture = gl.createTexture();
+	texture.image = new Image();
+	
+	texture.image.onload = function() {
+		handleLoadedTexture(texture);
+	}
+	texture.image.src = "wood.png";
+}
+
+
+/*ex5*/function handleLoadedTexture(tex) {
+	
+	gl.bindTexture(gl.TEXTURE_2D, tex);
+	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tex.image);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+	gl.bindTexture(gl.TEXTURE_2D, tex);
+}
+
+
+/*Ex4*/var cubeVertexPositionBuffer;    
+/*Ex5*/var cubeVertexTextureCoordBuffer;
+/*Ex4*/var cubeVertexIndexBuffer;
+
+/*Ex4*/var rCube = 0;
+
+function initBuffers() {
+/*Ex5 - TEXTURES IMPORTANT!!!*/
+        cubeVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+        vertices = [
+			/* front face */
+             1.0,  1.0,  1.0,
+            -1.0,  1.0,  1.0,
+             1.0, -1.0,  1.0,
+            -1.0, -1.0,  1.0,
+            /* backface */
+            1.0, 1.0, -1.0,
+            1.0, -1.0, 1.0,
+            1.0, 1.0, -1.0,
+            1.0, -1.0, -1.0,
+            /*top face */
+            -1.0, 1.0, -1.0,
+            -1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0,
+            1.0, 1.0, -1.0,
+            /* bottom face*/
+            -1.0, -1.0, -1.0,
+            1.0, -1.0, 1.0,
+            1.0, -1.0, 1.0,
+            -1.0, -1.0, 1.0,
+            /* right face */
+            1.0, -1.0, -1.0,
+            1.0, 1.0, -1.0,
+            1.0, 1.0, 1.0,
+            1.0, -1.0, 1.0,
+            /* left face */
+             -1.0, -1.0, -1.0,
+            -1.0, -1.0,  1.0,
+            -1.0,  1.0,  1.0,
+            -1.0,  1.0, -1.0 
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        cubeVertexPositionBuffer.itemSize = 3;
+        cubeVertexPositionBuffer.numItems = 24;
+        
+        /*EX5*/
+        cubeVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
+        var textureCoords = [
+			/*front*/
+			0.0, 0.0,
+			1.0, 0.0,
+			1.0, 1.0,
+			0.0, 1.0,
+			
+			/*back*/
+			1.0, 0.0,
+			1.0,1.0,
+			0.0, 1.0,
+			0.0, 0.0,
+			
+			/*top*/
+			0.0, 1.0,
+			0.0, 0.0,
+			1.0, 0.0,
+			1.0, 1.0,
+			
+			/*bottom*/
+			1.0, 1.0,
+			0.0, 1.0,
+			0.0, 0.0,
+			1.0, 0.0,
+			
+			/*left*/
+			0.0, 0.0,
+			1.0, 0.0,
+			1.0, 1.0,
+			0.0, 1.0,
+			
+			/*right*/
+			1.0, 0.0,
+			1.0, 1.0,
+			0.0, 1.0,
+			0.0, 0.0
+		];
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
+		cubeVertexTextureCoordBuffer.itemSize = 2;
+		cubeVertexTextureCoordBuffer.numItems = 24;
+		
+		cubeVertexIndexBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+		
+		var cubeVertexIndices = [
+			0,1,2,		0,2,3,
+			4,5,6,		4,6,7,
+			8,9,10,		8,10,11,
+			12,13,14,	12,14,15,
+			16,17,18,	16,18,19,
+			20,21,22,	20,22,23
+		];
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
+		cubeVertexIndexBuffer.itemSize =1;
+		cubeVertexIndexBuffer.numItems = 36;
+}
+
+/*Ex5*/
+	var xRot = 0;
+	var yRot = 0;
+	var zRot = 0;
+
+function drawScene() {
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+
+        mat4.identity(mvMatrix);
+
+        mat4.translate(mvMatrix, [0.0, 0.0, -5.0]);
+
+        mat4.rotate(mvMatrix, degToRad(xRot), [1, 0, 0]);
+        mat4.rotate(mvMatrix, degToRad(yRot), [0, 1, 0]);
+        mat4.rotate(mvMatrix, degToRad(zRot), [0, 0, 1]);
+   
+		gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 
+								cubeVertexPositionBuffer.itemSize, gl.FLOAT,
+								false, 0,0);
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
+		gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, 
+								cubeVertexTextureCoordBuffer.itemSize, gl.FLOAT,
+								false, 0,0);
+								
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.uniform1i(shaderProgram.sampleUniform, 0);
+
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+		setMatrixUniforms();
+		gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+}
+
+	
+/*Ex3*/var mvMatrix = mat4.create();
+/*Ex3*/var mvMatrixStack = new Array(16);
+/*Ex3*/var pMatrix = mat4.create();
+
+/*Ex3*/function mvPushMatrix() {
+		var copy = mat4.create();
+		mat4.set(mvMatrix, copy);
+		mvMatrixStack.push(copy);
+	}
+/*Ex3*/function mvPopMatrix() {
+		if ( mvMatrixStack.length == 0 ) {
+			throw "Invalid pop matrix!";
+		}
+		mvMatrix = mvMatrixStack.pop();
+	}
+/*Ex3*/function degToRad(degrees) {
+		return degrees * Math.PI /  180;
+	}
+/*Ex3*/var lastTime = 0;
+/*Ex3*/function animate() {
+		var timeNow = new Date().getTime();
+		if ( lastTime != 0 ) {
+			var elapsed = timeNow - lastTime;
+			xRot += (90 * elapsed) / 1000.0;
+			yRot += (90 * elapsed) / 1000.0;
+			zRot += (90 * elapsed) / 1000.0;
+		}
+		lastTime = timeNow;
+}
+
+
+/*Ex3*/function tick() {
+		drawScene();
+		animate();
+	}
+
+/* this is my Utils.js 
+	not the requestAnimation() form mozkit
+*/
+/*Ex3*/var t1 = new Thread("vladi");
+/*Ex3*/t1.add(tick);
+/*Ex3*/t1.set(30);
+
+function webGLStart() {
+        var canvas = document.getElementById("screen");
+        initGL(canvas);
+        initShaders();
+        initBuffers();
+/*Ex5*/ initTextures();
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+        
+        t1.start();
+}
+
+
+/* FOR TESTING PURPOSE*/ 
+var click_clack = false;
+window.onmousedown = function() {
+	if ( click_clack ) {
+		console.log(t1.toString()+" started");
+		t1.start();
+		click_clack = false;
+	} else {
+		console.log(t1.toString()+" stopped");
+		t1.stop();
+		click_clack = true;
+	}
+}
+</script>
+</head>
+
+
+<!------------------------------------------------------------------------------>
+<body onload="webGLStart();">
+	<canvas id="screen" width="600" height="300">
+	<h1> Your browser does not support HTML 5 Canvas </h1>
+	</canvas>
+</body>
+</html>
