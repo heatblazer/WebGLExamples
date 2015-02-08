@@ -8,18 +8,36 @@
 	</style>
 	
 	<!-- INCLUDE JS -->
-	<script type="text/javascript" src="glMatrix.min.js"></script>
+<!--	<script type="text/javascript" src="glMatrix.min.js"></script> -->
 	<script type="text/javascript" src="Utils.js"></script>
 	<script type="text/javascript" src="Thread.js"></script>
 	<script type="text/javascript" src="Renderer.js"></script>
-	<!---------------------------------------------------------------->
-
+	
 <!-- ##################Javascritp code ##################-->
-
 <script type="text/javascript">
-
+	
+	add_shader("head","shader-fs", "x-shader/x-fragment",
+				function() {
+					var src = "precision mediump float;\n"+
+								"void main(){\n"+
+							"gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); \n"+
+							"}\n";
+					return src;
+				});
+	
+	add_shader("head", "shader-vs", "x-shader/x-vertex", 
+				function() {
+					var src = "attribute vec3 aVertexPosition;\n"+
+							"uniform mat4 uMVMatrix; \n"+
+							"uniform mat4 uPMatrix; \n"+
+							"void main(){\n"+
+							"gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);\n"+
+							"}\n";
+					return src;
+				});
+	
 	var rend = new Renderer("screen");
-	window.onload = function() {
+	function Init() {
 		rend.init();
 	}
 
@@ -28,8 +46,8 @@
 
 
 <!------------------------------------------------------------------------------>
-<body>
-	<canvas id="screen" width="600" height="300">
+<body onload="Init();">
+	<canvas id="screen" width="640" height="480">
 	<h1> Your browser does not support HTML 5 Canvas </h1>
 	</canvas>
 </body>
