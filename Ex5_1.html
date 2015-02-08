@@ -1,0 +1,36 @@
+<html>
+
+<head id="head">
+	
+	<title>WebGL beginners guide</title>
+	<style  type='text/css'>
+		canvas {border: 2px dotted blue; }
+	</style>
+	
+	<!-- INCLUDE JS -->
+	<script type="text/javascript" src="glMatrix.min.js"></script>
+	<script type="text/javascript" src="Utils.js"></script>
+	<script type="text/javascript" src="Thread.js"></script>
+	<script type="text/javascript" src="Renderer.js"></script>
+	<!---------------------------------------------------------------->
+
+<!-- ##################Javascritp code ##################-->
+
+<script type="text/javascript">
+
+	var rend = new Renderer("screen");
+	window.onload = function() {
+		rend.init();
+	}
+
+</script>
+</head>
+
+
+<!------------------------------------------------------------------------------>
+<body>
+	<canvas id="screen" width="600" height="300">
+	<h1> Your browser does not support HTML 5 Canvas </h1>
+	</canvas>
+</body>
+</html>
