@@ -1,9 +1,11 @@
 /* renderer */
-function includeJs(src) {
+function includeJs(src, callback) {
 	var h = document.getElementById("head");
 	var js = document.createElement("script");
 	js.type = "text/javascript";
 	js.src = src;
+	js.onreadystatechange = callback;
+	js.onload = callback;
 	h.appendChild(js);
 }
 
