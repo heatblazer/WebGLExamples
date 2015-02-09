@@ -20,8 +20,28 @@ function add_shader(ID, id, type, srcmaker) {
 	shader.innerHTML = srcmaker();
 	h.appendChild(shader);
 }
+/********************B U F F E R *****************************************/
+var VBufferObject = function(gl, name) {
+	var vbo = null;
+	if ( ! gl ) {
+		return null;
+	}
+	function createBuffer(type, array, glDrawType) {
+		vbo = gl.createBuffer();
+		gl.bindBuffer(type, vbo);
+		gl.bufferData(type, new Float32Array(array), glDrawType);
+		console.log("OK"+vbo+";"+gl+"!");
+	};
+	
+	return {
+		"createVBO": function(type, array, glDrawType) {
+			createBuffer(type, array, glDrawType);
+			return vbo;
+		}
+	};
+};
 
-/************************************************************************/
+/********************R E N D E R E R**************************************/
 
 var Renderer = function(canvasName) {
 	/* includes */
@@ -153,6 +173,7 @@ var Renderer = function(canvasName) {
 			return null;
 		}
 		theSource = "";
+		/*
 		currentChild = shaderScript.firstChild;
 		while ( currentChild ) {
 			if ( currentChild.nodeType == currentChild.TEXT_NODE ) {
@@ -160,6 +181,9 @@ var Renderer = function(canvasName) {
 			}
 			currentChild = currentChild.nextSibling;
 		}
+		* */
+		theSource = shaderScript.innerHTML;
+		console.log("SHADER: "+shaderScript.innerHTML);
 		if ( shaderScript.type == "x-shader/x-fragment" ) {
 			shader = gl.createShader(gl.FRAGMENT_SHADER);
 		} else if ( shaderScript.type == "x-shader/x-vertex" ) {
@@ -181,6 +205,12 @@ var Renderer = function(canvasName) {
 	return {
 		"init": function() {
 			start();
+			var v = new VBufferObject(gl, "buffer1");
+			var vertice=[0.0, 1.0,0.0, 1.0,
+						-1.0, -1.0,1.0, 1.0,
+						-1.0, 1.0,0.0, 1.0,
+						1.0, 1.0,0.0, 1.0];
+			v.createVBO(gl.ARRAY_BUFFER,vertice,gl.STATIC_DRAW)
 		}
 	};
 };
